@@ -1,0 +1,830 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="robots" content="noindex,nofollow">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>CastKey Panel</title>
+<style>
+  :root {
+    --bg: #0b0b0f; --panel: #15151d; --panel2: #1d1d28; --line: #2a2a38;
+    --text: #f2f2f7; --dim: #9a9ab0; --accent: #9B6BFF; --accent2: #50C8FF;
+    --good: #4CD08A; --bad: #FF5F6D; --warn: #FFC53D;
+    --grad: linear-gradient(90deg, #9B6BFF, #50C8FF);
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; background: var(--bg); color: var(--text);
+    font: 15px/1.45 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+  button, input, textarea, select { font: inherit; color: inherit; }
+  a { color: var(--accent2); }
+  .hidden { display: none !important; }
+
+  header { display: flex; align-items: center; gap: 14px;
+    padding: max(12px, env(safe-area-inset-top)) max(22px, env(safe-area-inset-right)) 12px max(22px, env(safe-area-inset-left));
+    border-bottom: 1px solid var(--line); background: #0e0e14; position: sticky; top: 0; z-index: 5; }
+  header img { height: 34px; }
+  header .tag { color: var(--dim); font-size: 13px; border-left: 1px solid var(--line); padding-left: 14px; }
+  header .spacer { flex: 1; }
+  header .who { color: var(--dim); font-size: 13px; text-align: right; min-width: 0; max-width: 45vw;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  header .who b { color: var(--text); font-weight: 600; }
+
+  .btn { border: 1px solid var(--line); background: var(--panel2); padding: 9px 16px; border-radius: 10px;
+    cursor: pointer; transition: border-color .15s, transform .05s; white-space: nowrap; }
+  .btn:hover { border-color: #44445a; }
+  .btn:active { transform: translateY(1px); }
+  .btn.primary { background: var(--grad); border: 0; color: #fff; font-weight: 600; }
+  .btn.danger { color: var(--bad); border-color: #4a2530; background: transparent; }
+  .btn.small { padding: 6px 11px; font-size: 13px; border-radius: 8px; }
+  .btn:disabled { opacity: .5; cursor: default; }
+
+  /* Login */
+  .login { max-width: 400px; margin: 9vh auto; padding: 0 16px; }
+  .card { background: var(--panel); border: 1px solid var(--line); border-radius: 16px; padding: 22px; }
+  .login .card { padding: 28px; }
+  .login h1 { font-size: 20px; margin: 0 0 4px; }
+  .login p { color: var(--dim); margin: 0 0 20px; font-size: 14px; }
+
+  label { display: block; font-size: 13px; color: var(--dim); margin: 0 0 6px; }
+  input[type=text], input[type=email], input[type=password], input[type=url], input[type=datetime-local], textarea {
+    width: 100%; background: #0f0f16; border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; outline: none; }
+  input:focus, textarea:focus { border-color: var(--accent); }
+  textarea { resize: vertical; min-height: 70px; }
+  .field { margin-bottom: 14px; }
+  .hint { color: var(--dim); font-size: 12px; margin-top: 5px; }
+  .msg { font-size: 13px; margin-top: 10px; min-height: 18px; }
+  .msg.err { color: var(--bad); } .msg.ok { color: var(--good); }
+
+  /* Layout */
+  .app { display: grid; grid-template-columns: 280px 1fr; min-height: calc(100vh - 63px); }
+  aside { border-right: 1px solid var(--line); padding: 16px; background: #0e0e14; }
+  aside h2 { font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: var(--dim); margin: 6px 4px 10px; }
+  .plist { display: flex; flex-direction: column; gap: 6px; margin-top: 12px; }
+  .pitem { display: flex; align-items: center; gap: 10px; padding: 10px; border-radius: 10px; cursor: pointer;
+    border: 1px solid transparent; }
+  .pitem:hover { background: var(--panel); }
+  .pitem.on { background: var(--panel); border-color: var(--accent); }
+  .pitem .logo { width: 38px; height: 38px; border-radius: 8px; background: #0f0f16 center/contain no-repeat;
+    border: 1px solid var(--line); flex: none; }
+  .pitem .t { min-width: 0; }
+  .pitem .n { font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .pitem .c { color: var(--dim); font-size: 12px; font-family: ui-monospace, Consolas, monospace; }
+  .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--good); flex: none; margin-left: auto; }
+  .dot.off { background: #555; }
+  .empty { color: var(--dim); font-size: 14px; padding: 10px 4px; }
+
+  main { padding: 22px 26px 60px; min-width: 0; }
+  .editor { display: grid; grid-template-columns: minmax(0, 1fr) 340px; gap: 22px; align-items: start; }
+  .col { display: flex; flex-direction: column; gap: 18px; min-width: 0; }
+  .card h3 { margin: 0 0 14px; font-size: 16px; display: flex; align-items: center; gap: 4px 8px; flex-wrap: wrap; }
+  .card h3 .sub { color: var(--dim); font-weight: 400; font-size: 13px; margin-left: auto; }
+  .row { display: flex; gap: 12px; } .row > * { flex: 1; min-width: 0; }
+  .titlebar { display: flex; align-items: center; gap: 12px; margin-bottom: 18px; flex-wrap: wrap; }
+  .titlebar h1 { margin: 0; font-size: 22px; }
+  .code-pill { font-family: ui-monospace, Consolas, monospace; background: var(--panel2); border: 1px solid var(--line);
+    padding: 4px 10px; border-radius: 8px; font-size: 14px; letter-spacing: .06em; }
+  .titlebar .spacer { flex: 1; }
+
+  .switch { display: inline-flex; align-items: center; gap: 10px; cursor: pointer; user-select: none; }
+  .switch input { display: none; }
+  .switch .track { width: 42px; height: 24px; border-radius: 12px; background: #333; position: relative; transition: background .2s; }
+  .switch .track::after { content: ""; position: absolute; left: 3px; top: 3px; width: 18px; height: 18px; border-radius: 50%;
+    background: #fff; transition: left .2s; }
+  .switch input:checked + .track { background: var(--good); }
+  .switch input:checked + .track::after { left: 21px; }
+
+  .srv { display: grid; grid-template-columns: 150px 1fr auto; gap: 8px; margin-bottom: 8px; align-items: center; }
+  .logo-drop { display: flex; gap: 16px; align-items: center; }
+  .logo-box { width: 120px; height: 120px; border-radius: 14px; border: 1px dashed #44445a; background: #0f0f16 center/contain no-repeat;
+    display: grid; place-items: center; color: var(--dim); font-size: 12px; text-align: center; flex: none; }
+  .colors { display: flex; gap: 18px; }
+  .bg-box { width: 160px; height: 90px; background-size: cover !important; }
+  .bgedit { margin-top: 18px; padding-top: 16px; border-top: 1px solid var(--line); }
+  input[type=range] { width: 100%; accent-color: var(--accent); }
+  .colors label { display: flex; align-items: center; gap: 8px; color: var(--text); font-size: 14px; margin: 0; }
+  input[type=color] { width: 42px; height: 32px; border: 1px solid var(--line); border-radius: 8px; background: none; padding: 2px; cursor: pointer; }
+
+  .tiles-edit { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; margin-top: 18px; }
+  .tslot { background: #0f0f16; border: 1px solid var(--line); border-radius: 12px; padding: 10px; text-align: center; }
+  .tslot .ib { width: 64px; height: 64px; margin: 4px auto 8px; border-radius: 14px; background: #1d1d28 center/contain no-repeat;
+    display: grid; place-items: center; color: var(--dim); font-size: 11px; }
+  .tslot .nm { font-weight: 600; font-size: 13px; margin-bottom: 8px; }
+  .tslot .acts { display: flex; gap: 6px; justify-content: center; flex-wrap: wrap; }
+  .tv .tile i.img { opacity: 1; width: 30px; height: 30px; border-radius: 0; }
+  .tv .pvsearch { margin-left: auto; display: flex; align-items: center; gap: 4px; background: #15151d; border-radius: 20px;
+    padding: 4px 10px; font-size: 9px; color: var(--dim); white-space: nowrap; }
+  .tv .pvsearch svg { width: 11px; height: 11px; fill: var(--pa2, #50C8FF); }
+  .tv .tile i { display: grid; place-items: center; opacity: 1; }
+  .tv .tile i svg { width: 66%; height: 66%; fill: #fff; }
+  .tv .tile i.img svg { display: none; }
+  /* Announcement */
+  input[type=datetime-local] { color-scheme: dark; }
+  .annrow { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+  .annrow input { flex: 1 1 200px; min-width: 0; }
+  .annstate { display: inline-block; font-size: 12px; font-weight: 600; padding: 3px 9px; border-radius: 20px; margin-left: 6px; vertical-align: middle; }
+  .annstate.on { background: rgba(80,200,120,.16); color: #6be38f; }
+  .annstate.off { background: #22222c; color: var(--dim); }
+  .annstate.ended { background: rgba(255,107,107,.14); color: #ff8b8b; }
+  .tv .pvann { background: #15151d; border-radius: 6px; overflow: hidden; white-space: nowrap; font-size: 9px; padding: 4px 0; display: flex; align-items: center; }
+  .tv .pvann b { flex: none; padding: 0 6px; color: var(--pa2, #50C8FF); font-size: 9px; }
+  .tv .pvann span { display: inline-block; padding-left: 100%; animation: pvscroll 14s linear infinite; }
+  @keyframes pvscroll { from { transform: translateX(0); } to { transform: translateX(-100%); } }
+  @media (max-width: 420px) { .tiles-edit { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+  /* Live preview of the app */
+  .preview { position: sticky; top: 85px; }
+  .tv { border-radius: 14px; overflow: hidden; border: 6px solid #22222c; background: #0b0b0f; aspect-ratio: 16/9; padding: 14px; display: flex; flex-direction: column; gap: 10px; }
+  .tv .top { display: flex; align-items: center; gap: 10px; }
+  .tv .top img { height: 34px; max-width: 150px; object-fit: contain; }
+  .tv .top .nm { font-weight: 700; font-size: 15px; }
+  .tv .top .ms { color: var(--dim); font-size: 10px; }
+  .tv .tiles { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; flex: 1; }
+  .tv .tile { background: #15151d; border-radius: 8px; display: grid; place-items: center; font-size: 10px; font-weight: 700;
+    border: 2px solid transparent; }
+  .tv .tile.f { border-color: var(--pa, #9B6BFF); }
+  .tv .tile i { display: block; width: 22px; height: 22px; border-radius: 6px; margin: 0 auto 5px; background: var(--pa, #9B6BFF); opacity: .85; }
+  .preview .cap { color: var(--dim); font-size: 12px; margin-top: 8px; text-align: center; }
+
+  /* Save stays on screen while scrolling, on every device */
+  .savebar { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; position: sticky; bottom: 0; z-index: 4;
+    padding: 12px 0 max(12px, env(safe-area-inset-bottom)); margin-top: -4px;
+    background: var(--bg); border-top: 1px solid var(--line); box-shadow: 0 -10px 20px rgba(0,0,0,.35); }
+  .savebar .msg { margin: 0; }
+  .welcome { max-width: 560px; margin: 12vh auto; text-align: center; color: var(--dim); }
+  .welcome h2 { color: var(--text); }
+
+  dialog { background: var(--panel); color: var(--text); border: 1px solid var(--line); border-radius: 16px; padding: 24px; width: min(440px, calc(100vw - 24px));
+    max-height: calc(100dvh - 24px); overflow: auto; }
+  dialog::backdrop { background: rgba(0,0,0,.6); }
+  dialog h3 { margin: 0 0 14px; }
+  .dlg-actions { display: flex; gap: 10px; justify-content: flex-end; margin-top: 8px; }
+
+  .logo-drop, .colors { flex-wrap: wrap; }
+  .titlebar h1 { min-width: 0; overflow-wrap: anywhere; }
+
+  /* Tablets and small laptops: one column, preview on top so changes are visible while editing */
+  @media (max-width: 1100px) {
+    .editor { grid-template-columns: 1fr; }
+    .preview { position: static; order: -1; }
+    .preview .card { max-width: 520px; margin: 0 auto; }
+  }
+
+  @media (min-width: 761px) and (max-width: 1000px) { .app { grid-template-columns: 220px minmax(0, 1fr); } main { padding: 18px; } }
+
+  /* Phones (portrait) and small tablets */
+  @media (max-width: 760px) {
+    .app { grid-template-columns: minmax(0, 1fr); min-height: 0; }
+    aside { min-width: 0; border-right: 0; border-bottom: 1px solid var(--line); padding: 12px 16px; }
+    aside h2 { margin: 2px 0 8px; }
+    /* Provider list becomes a sideways-scrolling strip */
+    .plist { flex-direction: row; overflow-x: auto; scroll-snap-type: x mandatory; padding-bottom: 6px; -webkit-overflow-scrolling: touch; }
+    .pitem { flex: 0 0 auto; width: min(240px, 72vw); scroll-snap-align: start; background: var(--panel); }
+    main { padding: 16px max(16px, env(safe-area-inset-right)) 0 max(16px, env(safe-area-inset-left)); }
+    .card { padding: 16px; border-radius: 14px; }
+    .titlebar { margin-bottom: 14px; }
+    .titlebar h1 { font-size: 19px; }
+    .srv { grid-template-columns: 1fr auto; padding-bottom: 10px; border-bottom: 1px solid var(--line); }
+    .srv > input[type=url] { grid-column: 1 / -1; grid-row: 2; }
+    .srv:last-child { border-bottom: 0; }
+    .row { flex-direction: column; }
+    header { gap: 10px; padding-left: max(16px, env(safe-area-inset-left)); padding-right: max(16px, env(safe-area-inset-right)); }
+    header img { height: 28px; }
+    header .tag { display: none; }
+    .logo-box { width: 96px; height: 96px; }
+    .savebar .btn.primary { flex: 1; }
+    .card h3 .sub { margin-left: 0; flex-basis: 100%; }
+    .savebar .msg { flex-basis: 100%; }
+    .login { margin: 5vh auto; }
+    .welcome { margin: 6vh auto; padding: 0 8px; }
+  }
+
+  @media (max-width: 480px) { header .who { display: none; } }
+
+  /* Very small phones */
+  @media (max-width: 380px) {
+    .tiles-edit { gap: 8px; }
+    .tslot { padding: 8px; }
+    .colors { gap: 10px; }
+    header .who { max-width: 38vw; font-size: 12px; }
+  }
+
+  /* Phones turned sideways (short screens): don't pin the header, tighten spacing */
+  @media (max-height: 520px) and (orientation: landscape) {
+    header { position: static; }
+    .login { margin: 16px auto; }
+    .preview { order: 0; }
+    .tv { aspect-ratio: auto; min-height: 150px; }
+  }
+
+  /* Touch screens: bigger tap targets, and 16px text so iPhones don't zoom in on fields */
+  @media (pointer: coarse) {
+    .btn { min-height: 44px; }
+    .btn.small { min-height: 38px; padding: 8px 12px; }
+    input[type=text], input[type=email], input[type=password], input[type=url], input[type=datetime-local], textarea { font-size: 16px; padding: 12px; }
+    .pitem { min-height: 56px; }
+    input[type=color] { width: 48px; height: 38px; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <img src="data:image/png;base64,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" alt="CastKey">
+  <span class="tag">Provider Panel</span>
+  <span class="spacer"></span>
+  <span id="who" class="who hidden"></span>
+  <button id="signOut" class="btn small hidden">Sign out</button>
+</header>
+
+<!-- Login -->
+<section id="loginView" class="login hidden">
+  <div class="card">
+    <h1>Sign in</h1>
+    <p>Manage your provider's servers and branding.</p>
+    <form id="loginForm">
+      <div class="field"><label for="email">Email</label><input id="email" type="email" autocomplete="username" required></div>
+      <div class="field"><label for="pass">Password</label><input id="pass" type="password" autocomplete="current-password" required></div>
+      <button class="btn primary" style="width:100%" type="submit">Sign in</button>
+      <div id="loginMsg" class="msg err"></div>
+    </form>
+  </div>
+</section>
+
+<!-- Main -->
+<section id="appView" class="app hidden">
+  <aside>
+    <h2 id="listTitle">Providers</h2>
+    <button id="newBtn" class="btn primary hidden" style="width:100%">+ New provider</button>
+    <button id="updBtn" class="btn hidden" style="width:100%;margin-top:8px">⬆ App updates <span id="updVer" style="color:var(--dim);font-size:12px"></span></button>
+    <div id="plist" class="plist"></div>
+  </aside>
+  <main>
+    <div id="welcome" class="welcome">
+      <h2>Pick a provider</h2>
+      <p>Choose one on the left to edit its servers and branding.</p>
+    </div>
+
+    <div id="editorWrap" class="hidden">
+      <div class="titlebar">
+        <h1 id="edTitle">Provider</h1>
+        <span id="edCode" class="code-pill"></span>
+        <span class="spacer"></span>
+        <label class="switch" title="When off, the app says this code isn't active">
+          <input id="fActive" type="checkbox"><span class="track"></span><span id="activeTxt">Active</span>
+        </label>
+      </div>
+
+      <div class="editor">
+        <div class="col">
+          <div class="card">
+            <h3>Basics</h3>
+            <div class="field"><label for="fName">Display name</label><input id="fName" type="text" maxlength="40" placeholder="My TV Service"></div>
+            <div class="field"><label for="fMsg">Welcome message <span style="opacity:.7">(optional)</span></label>
+              <input id="fMsg" type="text" maxlength="120" placeholder="Welcome! Enjoy the show."></div>
+            <div class="field" style="margin:0"><label for="fSupport">Support contact <span style="opacity:.7">(optional)</span></label>
+              <input id="fSupport" type="text" maxlength="120" placeholder="Text 555-123-4567 or visit example.com">
+              <div class="hint">Shown in the app when a customer needs help.</div></div>
+            <label class="switch" style="margin:16px 0 0"><input id="fSports" type="checkbox"><span class="track"></span><span>Sports Guide on the Home screen <span style="opacity:.7">(live scores, schedules, find the game in your channels)</span></span></label>
+          </div>
+
+          <div class="card">
+            <h3>Announcement <span id="annState" class="annstate off">Off</span> <span class="sub">Scrolls across the bottom of Home</span></h3>
+            <div class="field"><label for="fAnn">Message to your customers</label>
+              <textarea id="fAnn" maxlength="280" placeholder="Server maintenance tonight from 2–3 AM. Thanks for your patience!"></textarea></div>
+            <div class="field" style="margin:0"><label for="fAnnExp">Stop showing it on <span style="opacity:.7">(optional)</span></label>
+              <div class="annrow"><input id="fAnnExp" type="datetime-local"><button id="annNoExp" class="btn small" type="button">No end date</button><button id="annClear" class="btn small danger" type="button">Remove announcement</button></div>
+              <div class="hint">Leave the end date empty to keep it up until you remove it. Click Save changes to post it. Apps check for new announcements every few minutes.</div></div>
+          </div>
+
+          <div class="card">
+            <h3>Servers (DNS) <span class="sub">The app tries them in order</span></h3>
+            <div id="servers"></div>
+            <button id="addSrv" class="btn small">+ Add server</button>
+            <div class="hint">Use the full address with http:// or https:// and the port, e.g. http://line.example.com:8080</div>
+          </div>
+
+          <div class="card">
+            <h3>Branding</h3>
+            <div class="logo-drop field">
+              <div id="logoBox" class="logo-box">No logo</div>
+              <div>
+                <input id="fLogo" type="file" accept="image/png,image/jpeg,image/webp" class="hidden">
+                <button id="pickLogo" class="btn small">Upload logo</button>
+                <button id="clearLogo" class="btn small danger">Remove</button>
+                <div class="hint">PNG with a see-through background looks best. It's resized automatically.</div>
+              </div>
+            </div>
+            <div class="colors">
+              <label><input id="fC1" type="color" value="#9B6BFF"> Main color</label>
+              <label><input id="fC2" type="color" value="#50C8FF"> Second color</label>
+            </div>
+            <div class="bgedit">
+              <h3 style="margin:0 0 10px;font-size:15px">App background</h3>
+              <div class="colors"><label><input id="fBg" type="color" value="#0D0F14"> Background color</label>
+                <button id="resetBg" class="btn small" type="button">Default</button></div>
+              <div class="logo-drop" style="margin-top:14px">
+                <div id="bgBox" class="logo-box bg-box">No picture</div>
+                <div style="flex:1;min-width:180px">
+                  <input id="fBgImg" type="file" accept="image/png,image/jpeg,image/webp" class="hidden">
+                  <button id="pickBg" class="btn small" type="button">Upload background picture</button>
+                  <button id="clearBg" class="btn small danger" type="button">Remove</button>
+                  <div class="field" style="margin:12px 0 0"><label for="fBgDim">Darken picture: <b id="bgDimVal" style="color:var(--text)">55%</b></label>
+                    <input id="fBgDim" type="range" min="0" max="90" step="5" value="55"></div>
+                </div>
+              </div>
+              <div class="hint">Optional. A wide picture (like 1920×1080) works best. It's resized automatically and darkened so text stays easy to read.</div>
+            </div>
+            <div class="tiles-edit" id="tileSlots"></div>
+            <div class="hint">Tile pictures replace the icons on the Home tiles (Search now sits at the top of Home). Square PNGs with a see-through background look best. Leave empty to use the colors.</div>
+            <input id="fTile" type="file" accept="image/png,image/jpeg,image/webp" class="hidden">
+          </div>
+
+          <div id="ownerCard" class="card hidden">
+            <h3>Owner login <span class="sub">Admin only</span></h3>
+            <div id="ownerNow" class="hint" style="margin:0 0 12px;font-size:14px"></div>
+            <button id="setOwner" class="btn small">Create / change owner login</button>
+          </div>
+
+          <div class="savebar">
+            <button id="saveBtn" class="btn primary">Save changes</button>
+            <button id="delBtn" class="btn danger hidden">Delete provider</button>
+            <span id="saveMsg" class="msg"></span>
+          </div>
+        </div>
+
+        <div class="preview">
+          <div class="card">
+            <h3>Preview <span class="sub">Home screen</span></h3>
+            <div id="tv" class="tv">
+              <div class="top"><img id="pvLogo" alt="" class="hidden"><div><div id="pvName" class="nm">Provider</div><div id="pvMsg" class="ms"></div></div><div class="pvsearch"><svg viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg>Search</div></div>
+              <div class="tiles">
+                <div class="tile f"><div><i><svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg></i>Live TV</div></div>
+                <div class="tile"><div><i><svg viewBox="0 0 24 24"><path fill-rule="evenodd" d="M2.00,11.00a9,9 0 1,0 18,0a9,9 0 1,0 -18,0zM8.90,6.00a2.1,2.1 0 1,0 4.2,0a2.1,2.1 0 1,0 -4.2,0zM13.66,9.45a2.1,2.1 0 1,0 4.2,0a2.1,2.1 0 1,0 -4.2,0zM11.84,15.05a2.1,2.1 0 1,0 4.2,0a2.1,2.1 0 1,0 -4.2,0zM5.96,15.05a2.1,2.1 0 1,0 4.2,0a2.1,2.1 0 1,0 -4.2,0zM4.14,9.45a2.1,2.1 0 1,0 4.2,0a2.1,2.1 0 1,0 -4.2,0zM10.00,11.00a1,1 0 1,0 2,0a1,1 0 1,0 -2,0z"/><path d="M11,18.2 L21,18.2 Q22.5,18.2 22.5,19.7 L22.5,20 L11,20 Z"/></svg></i>Movies</div></div>
+                <div class="tile"><div><i><svg viewBox="0 0 24 24"><path d="M4,6H2v14c0,1.1 0.9,2 2,2h14v-2H4V6zM20,2H8C6.9,2 6,2.9 6,4v12c0,1.1 0.9,2 2,2h12c1.1,0 2,-0.9 2,-2V4C22,2.9 21.1,2 20,2zM12,14.5v-9l6,4.5L12,14.5z"/></svg></i>Series</div></div>
+                <div class="tile" id="pvSports"><div><i><svg viewBox="0 0 24 24"><path d="M19,5h-2V3H7v2H5C3.9,5 3,5.9 3,7v1c0,2.55 1.92,4.63 4.39,4.94c0.63,1.5 1.98,2.63 3.61,2.96V19H7v2h10v-2h-4v-3.1c1.63,-0.33 2.98,-1.46 3.61,-2.96C19.08,12.63 21,10.55 21,8V7C21,5.9 20.1,5 19,5zM5,8V7h2v3.82C5.84,10.4 5,9.3 5,8zM19,8c0,1.3 -0.84,2.4 -2,2.82V7h2V8z"/></svg></i>Sports</div></div>
+              </div>
+              <div id="pvAnn" class="pvann hidden"><b>&#128226;</b><span></span></div>
+            </div>
+            <div class="cap">Customers enter code <b id="pvCode"></b> in CastKey</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+</section>
+
+<!-- New provider -->
+<dialog id="newDlg">
+  <h3>New provider</h3>
+  <form id="newForm" method="dialog">
+    <div class="field"><label for="nCode">Provider code</label><input id="nCode" type="text" maxlength="16" placeholder="MYTV" required>
+      <div class="hint">3–16 letters or numbers. Customers type this into the app. It can't be changed later.</div></div>
+    <div class="field"><label for="nName">Display name</label><input id="nName" type="text" maxlength="40" placeholder="My TV Service" required></div>
+    <div id="newMsg" class="msg err"></div>
+    <div class="dlg-actions"><button type="button" class="btn" data-close>Cancel</button><button class="btn primary" type="submit">Create</button></div>
+  </form>
+</dialog>
+
+<!-- App updates (admin) -->
+<dialog id="updDlg">
+  <h3>Publish an app update</h3>
+  <p class="hint" style="margin-top:-6px">Every CastKey app checks this when it opens. If the version here is newer than theirs, customers get an "Update available" pop-up.</p>
+  <form id="updForm" method="dialog">
+    <div class="field"><label for="uVer">Latest version</label><input id="uVer" type="text" maxlength="12" placeholder="1.8" required>
+      <div class="hint">Must match the version in the APK file names, e.g. CastKey-<b>1.8</b>-firestick.apk</div></div>
+    <div class="field"><label for="uNotes">What's new <span style="opacity:.7">(shown to customers)</span></label>
+      <textarea id="uNotes" maxlength="300" placeholder="Faster TV guide and a new search bar."></textarea></div>
+    <div class="field"><label for="uBase">Download folder</label><input id="uBase" type="url">
+      <div class="hint">Where the APKs are uploaded. <b>{version}</b> is filled in automatically. For GitHub, create a release named <b>v1.8</b> and upload the APK files to it.</div></div>
+    <label class="switch" style="margin:4px 0 14px"><input id="uReq" type="checkbox"><span class="track"></span><span>Required update (customers can't skip it)</span></label>
+    <div id="updMsg" class="msg err"></div>
+    <div class="dlg-actions"><button type="button" class="btn" data-close>Cancel</button><button class="btn primary" type="submit">Publish update</button></div>
+  </form>
+</dialog>
+
+<!-- Owner login -->
+<dialog id="ownerDlg">
+  <h3>Owner login</h3>
+  <p class="hint" style="margin-top:-6px">The owner uses this email and password to sign in to this panel. They can only edit their own provider.</p>
+  <form id="ownerForm" method="dialog">
+    <div class="field"><label for="oEmail">Owner email</label><input id="oEmail" type="email" required></div>
+    <div class="field"><label for="oPass">Temporary password</label><input id="oPass" type="text" minlength="8" placeholder="At least 8 characters">
+      <div class="hint">Leave empty if this email already has a login. Then paste their User UID below.</div></div>
+    <div class="field"><label for="oUid">User UID <span style="opacity:.7">(only for an existing login)</span></label><input id="oUid" type="text">
+      <div class="hint">Firebase console → Authentication → Users.</div></div>
+    <div id="ownerMsg" class="msg err"></div>
+    <div class="dlg-actions"><button type="button" class="btn" data-close>Cancel</button><button class="btn primary" type="submit">Save owner</button></div>
+  </form>
+</dialog>
+
+<script type="module">
+import { initializeApp, deleteApp } from "https://www.gstatic.com/firebasejs/12.19.0/firebase-app.js";
+import { getAuth, onAuthStateChanged, signInWithEmailAndPassword, signOut, createUserWithEmailAndPassword }
+  from "https://www.gstatic.com/firebasejs/12.19.0/firebase-auth.js";
+import { getFirestore, doc, getDoc, setDoc, updateDoc, deleteDoc, collection, getDocs, query, where, serverTimestamp }
+  from "https://www.gstatic.com/firebasejs/12.19.0/firebase-firestore.js";
+
+// These values identify the Firebase project. They are not secret; the security rules protect the data.
+const firebaseConfig = {
+  apiKey: "AIzaSyCXSFKTYtD5ukr4ygD596iVwxzEBsoJ8t0",
+  authDomain: "castkey-bb932.firebaseapp.com",
+  projectId: "castkey-bb932",
+  storageBucket: "castkey-bb932.firebasestorage.app",
+  messagingSenderId: "267536634422",
+  appId: "1:267536634422:web:2c112ed28f7b624a6d7e97",
+};
+
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getFirestore(app);
+
+const $ = (id) => document.getElementById(id);
+let me = null, isAdmin = false, providers = [], current = null, logoData = "", bgData = "";
+const TILES = [["live", "Live TV"], ["movies", "Movies"], ["series", "Series"], ["sports", "Sports"]];
+let tileIcons = {}, tilePicking = null;
+
+// ---------- helpers ----------
+function show(el, on = true) { el.classList.toggle("hidden", !on); }
+function msg(el, text, ok = false) { el.textContent = text || ""; el.className = "msg " + (ok ? "ok" : "err"); }
+function friendly(e) {
+  const c = e?.code || "";
+  if (c.includes("invalid-credential") || c.includes("wrong-password") || c.includes("user-not-found")) return "Wrong email or password.";
+  if (c.includes("too-many-requests")) return "Too many tries. Wait a few minutes and try again.";
+  if (c.includes("permission-denied")) return "You don't have permission to do that.";
+  if (c.includes("email-already-in-use")) return "That email already has a login. Leave the password empty and paste their User UID instead.";
+  if (c.includes("weak-password")) return "Password needs at least 6 characters (8+ recommended).";
+  if (c.includes("invalid-email")) return "That email address doesn't look right.";
+  if (c.includes("network") || c.includes("unavailable")) return "Can't reach the server. Check your internet.";
+  return e?.message || "Something went wrong.";
+}
+
+// ---------- auth ----------
+$("loginForm").addEventListener("submit", async (ev) => {
+  ev.preventDefault();
+  msg($("loginMsg"), "");
+  try { await signInWithEmailAndPassword(auth, $("email").value.trim(), $("pass").value); }
+  catch (e) { msg($("loginMsg"), friendly(e)); }
+});
+$("signOut").onclick = () => signOut(auth);
+
+onAuthStateChanged(auth, async (user) => {
+  me = user;
+  show($("loginView"), !user);
+  show($("appView"), !!user);
+  show($("who"), !!user);
+  show($("signOut"), !!user);
+  if (!user) { current = null; return; }
+  try {
+    isAdmin = (await getDoc(doc(db, "admins", user.uid))).exists();
+  } catch { isAdmin = false; }
+  $("who").innerHTML = `<b>${user.email}</b><br>${isAdmin ? "Admin" : "Provider owner"}`;
+  show($("newBtn"), isAdmin);
+  show($("updBtn"), isAdmin);
+  if (isAdmin) loadUpdateInfo();
+  $("listTitle").textContent = isAdmin ? "All providers" : "Your provider";
+  await loadList();
+});
+
+// ---------- list ----------
+async function loadList(selectCode) {
+  const col = collection(db, "providers");
+  const snap = await getDocs(isAdmin ? col : query(col, where("ownerUid", "==", me.uid)));
+  providers = snap.docs.map(d => ({ code: d.id, ...d.data() })).sort((a, b) => a.code.localeCompare(b.code));
+  renderList();
+  const pick = selectCode || current?.code || (providers.length === 1 ? providers[0].code : null);
+  if (pick && providers.find(p => p.code === pick)) open(pick);
+  else { show($("editorWrap"), false); show($("welcome"), true);
+    $("welcome").innerHTML = providers.length ? "<h2>Pick a provider</h2><p>Choose one on the left to edit its servers and branding.</p>"
+      : isAdmin ? "<h2>No providers yet</h2><p>Click <b>+ New provider</b> to create the first one.</p>"
+      : "<h2>No provider linked</h2><p>Your login isn't linked to a provider yet. Ask your CastKey admin.</p>"; }
+}
+
+function renderList() {
+  const box = $("plist");
+  box.innerHTML = "";
+  if (!providers.length) { box.innerHTML = '<div class="empty">Nothing here yet.</div>'; return; }
+  for (const p of providers) {
+    const el = document.createElement("div");
+    el.className = "pitem" + (current?.code === p.code ? " on" : "");
+    el.innerHTML = `<div class="logo"></div><div class="t"><div class="n"></div><div class="c"></div></div><span class="dot"></span>`;
+    if (p.logo) el.querySelector(".logo").style.backgroundImage = `url("${p.logo}")`;
+    el.querySelector(".n").textContent = p.name || p.code;
+    el.querySelector(".c").textContent = p.code;
+    el.querySelector(".dot").classList.toggle("off", p.active === false);
+    el.onclick = () => open(p.code);
+    box.appendChild(el);
+  }
+}
+
+// ---------- editor ----------
+function open(code) {
+  current = providers.find(p => p.code === code);
+  if (!current) return;
+  renderList();
+  show($("welcome"), false);
+  show($("editorWrap"), true);
+  $("edTitle").textContent = current.name || current.code;
+  $("edCode").textContent = current.code;
+  $("pvCode").textContent = current.code;
+  $("fName").value = current.name || "";
+  $("fMsg").value = current.message || "";
+  $("fSupport").value = current.support || "";
+  $("fAnn").value = current.announcement || "";
+  $("fSports").checked = current.sports === true;
+  $("fAnnExp").value = current.announcementExpires ? toLocalInput(current.announcementExpires) : "";
+  $("fActive").checked = current.active !== false;
+  $("activeTxt").textContent = $("fActive").checked ? "Active" : "Turned off";
+  $("fC1").value = current.color1 || "#9B6BFF";
+  $("fC2").value = current.color2 || "#50C8FF";
+  logoData = current.logo || "";
+  bgData = current.bgImage || "";
+  $("fBg").value = current.bgColor || "#0D0F14";
+  $("fBgDim").value = current.bgDim ?? 55;
+  setBgBox();
+  setLogoBox();
+  tileIcons = { ...(current.tileIcons || {}) };
+  renderTileSlots();
+  $("servers").innerHTML = "";
+  (current.servers?.length ? current.servers : [{ label: "Main", url: "" }]).forEach(addServerRow);
+  show($("ownerCard"), isAdmin);
+  show($("delBtn"), isAdmin);
+  $("ownerNow").innerHTML = current.ownerEmail
+    ? `Owner: <b style="color:var(--text)">${current.ownerEmail}</b>`
+    : (current.ownerUid === me.uid ? "No owner login yet. Only admins can edit this provider." : "Owner login set.");
+  msg($("saveMsg"), "");
+  preview();
+}
+
+function addServerRow(s = { label: "", url: "" }) {
+  const row = document.createElement("div");
+  row.className = "srv";
+  row.innerHTML = `<input type="text" placeholder="Label (e.g. Main)" maxlength="30">
+    <input type="url" placeholder="http://line.example.com:8080">
+    <button class="btn small danger" title="Remove">✕</button>`;
+  const [l, u, rm] = row.children;
+  l.value = s.label || ""; u.value = s.url || "";
+  rm.onclick = () => row.remove();
+  $("servers").appendChild(row);
+}
+$("addSrv").onclick = () => addServerRow();
+
+function readServers() {
+  return [...$("servers").children].map(r => ({ label: r.children[0].value.trim(), url: r.children[1].value.trim().replace(/\/+$/, "") }))
+    .filter(s => s.url);
+}
+
+function setLogoBox() {
+  const b = $("logoBox");
+  b.style.backgroundImage = logoData ? `url("${logoData}")` : "";
+  b.textContent = logoData ? "" : "No logo";
+}
+
+// Logos are shrunk to 512px and stored in the database (no paid storage needed).
+$("pickLogo").onclick = () => $("fLogo").click();
+$("clearLogo").onclick = () => { logoData = ""; setLogoBox(); preview(); };
+async function shrink(file, max) {
+  const img = await new Promise((res, rej) => { const i = new Image(); i.onload = () => res(i); i.onerror = rej; i.src = URL.createObjectURL(file); });
+  const scale = Math.min(1, max / Math.max(img.width, img.height));
+  const c = document.createElement("canvas");
+  c.width = Math.round(img.width * scale); c.height = Math.round(img.height * scale);
+  c.getContext("2d").drawImage(img, 0, 0, c.width, c.height);
+  let data = c.toDataURL("image/webp", 0.9);
+  if (!data.startsWith("data:image/webp")) data = c.toDataURL("image/png");
+  if (data.length > max * 900) data = c.toDataURL("image/webp", 0.7);
+  return data;
+}
+// Background picture: 1280px wide JPEG keeps it small enough for the database
+function setBgBox() {
+  const b = $("bgBox");
+  b.style.backgroundImage = bgData ? `url("${bgData}")` : "";
+  b.textContent = bgData ? "" : "No picture";
+  $("bgDimVal").textContent = $("fBgDim").value + "%";
+}
+async function shrinkPhoto(file, max) {
+  const img = await new Promise((res, rej) => { const i = new Image(); i.onload = () => res(i); i.onerror = rej; i.src = URL.createObjectURL(file); });
+  const scale = Math.min(1, max / Math.max(img.width, img.height));
+  const c = document.createElement("canvas");
+  c.width = Math.round(img.width * scale); c.height = Math.round(img.height * scale);
+  c.getContext("2d").drawImage(img, 0, 0, c.width, c.height);
+  let data = c.toDataURL("image/jpeg", 0.72);
+  if (data.length > 350000) data = c.toDataURL("image/jpeg", 0.55);
+  return data;
+}
+$("pickBg").onclick = () => $("fBgImg").click();
+$("clearBg").onclick = () => { bgData = ""; setBgBox(); preview(); };
+$("resetBg").onclick = () => { $("fBg").value = "#0D0F14"; preview(); };
+$("fBgImg").onchange = async () => {
+  const f = $("fBgImg").files[0];
+  if (!f) return;
+  bgData = await shrinkPhoto(f, 1280);
+  setBgBox(); preview();
+  $("fBgImg").value = "";
+};
+["fBg", "fBgDim"].forEach(id => $(id).addEventListener("input", () => { setBgBox(); preview(); }));
+
+$("fLogo").onchange = async () => {
+  const f = $("fLogo").files[0];
+  if (!f) return;
+  logoData = await shrink(f, 512);
+  setLogoBox(); preview();
+  $("fLogo").value = "";
+};
+
+// Tile pictures (Live TV, Movies, Series, Search) — 256px each
+function renderTileSlots() {
+  const box = $("tileSlots");
+  box.innerHTML = "";
+  for (const [key, label] of TILES) {
+    const el = document.createElement("div");
+    el.className = "tslot";
+    el.innerHTML = `<div class="nm"></div><div class="ib"></div><div class="acts">
+      <button class="btn small" data-a="up">Upload</button><button class="btn small danger" data-a="rm">✕</button></div>`;
+    el.querySelector(".nm").textContent = label;
+    const ib = el.querySelector(".ib");
+    if (tileIcons[key]) ib.style.backgroundImage = `url("${tileIcons[key]}")`; else ib.textContent = "Color";
+    el.querySelector('[data-a="up"]').onclick = () => { tilePicking = key; $("fTile").click(); };
+    const rm = el.querySelector('[data-a="rm"]');
+    rm.classList.toggle("hidden", !tileIcons[key]);
+    rm.onclick = () => { delete tileIcons[key]; renderTileSlots(); preview(); };
+    box.appendChild(el);
+  }
+}
+$("fTile").onchange = async () => {
+  const f = $("fTile").files[0];
+  if (!f || !tilePicking) return;
+  tileIcons[tilePicking] = await shrink(f, 256);
+  $("fTile").value = ""; tilePicking = null;
+  renderTileSlots(); preview();
+};
+
+function preview() {
+  const tv = $("tv");
+  const dim = (Number($("fBgDim").value) || 0) / 100;
+  tv.style.background = bgData
+    ? `linear-gradient(rgba(0,0,0,${dim}), rgba(0,0,0,${dim})), center/cover no-repeat url("${bgData}"), ${$("fBg").value}`
+    : $("fBg").value;
+  tv.style.setProperty("--pa", $("fC1").value);
+  tv.style.setProperty("--pa2", $("fC2").value);
+  $("pvName").textContent = $("fName").value || current?.code || "Provider";
+  $("pvName").style.color = "#fff";
+  $("pvMsg").textContent = $("fMsg").value;
+  const img = $("pvLogo");
+  if (logoData) { img.src = logoData; show(img, true); } else show(img, false);
+  const sportsOn = $("fSports").checked;
+  show($("pvSports"), sportsOn);
+  tv.querySelector(".tiles").style.gridTemplateColumns = `repeat(${sportsOn ? 4 : 3}, 1fr)`;
+  tv.querySelectorAll(".tile i").forEach((i, n) => {
+    const icon = tileIcons[TILES[n][0]];
+    i.classList.toggle("img", !!icon);
+    i.style.background = icon ? `center/contain no-repeat url("${icon}")` : (n % 2 ? $("fC2").value : $("fC1").value);
+  });
+  const ann = $("fAnn").value.trim();
+  $("pvAnn").querySelector("span").textContent = ann;
+  show($("pvAnn"), !!ann);
+  annState();
+}
+["fName", "fMsg", "fC1", "fC2", "fAnn", "fAnnExp"].forEach(id => $(id).addEventListener("input", preview));
+$("fSports").addEventListener("change", preview);
+function toLocalInput(ms) {
+  const d = new Date(ms);
+  const p = n => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}T${p(d.getHours())}:${p(d.getMinutes())}`;
+}
+function annExpiresMs() { const v = $("fAnnExp").value; return v ? new Date(v).getTime() : 0; }
+function annState() {
+  const el = $("annState"), text = $("fAnn").value.trim(), exp = annExpiresMs();
+  if (!text) { el.textContent = "Off"; el.className = "annstate off"; return; }
+  if (exp && exp <= Date.now()) { el.textContent = "Ended"; el.className = "annstate ended"; return; }
+  el.textContent = exp ? "Showing until " + new Date(exp).toLocaleString([], { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" }) : "Showing";
+  el.className = "annstate on";
+}
+$("annNoExp").onclick = () => { $("fAnnExp").value = ""; preview(); };
+$("annClear").onclick = () => { $("fAnn").value = ""; $("fAnnExp").value = ""; preview(); };
+$("fActive").onchange = () => $("activeTxt").textContent = $("fActive").checked ? "Active" : "Turned off";
+
+$("saveBtn").onclick = async () => {
+  if (!current) return;
+  const servers = readServers();
+  const bad = servers.find(s => !/^https?:\/\/[^\s/]+/i.test(s.url));
+  if (bad) return msg($("saveMsg"), `"${bad.url}" needs to start with http:// or https://`);
+  if (!servers.length) return msg($("saveMsg"), "Add at least one server address.");
+  const annText = $("fAnn").value.trim(), annExp = annExpiresMs();
+  if (annText && annExp && annExp <= Date.now()) return msg($("saveMsg"), "The announcement's end date has already passed. Pick a later time or clear it.");
+  const data = {
+    name: $("fName").value.trim() || current.code,
+    message: $("fMsg").value.trim(),
+    support: $("fSupport").value.trim(),
+    sports: $("fSports").checked,
+    announcement: annText,
+    announcementExpires: annText ? annExp : 0,
+    active: $("fActive").checked,
+    color1: $("fC1").value, color2: $("fC2").value,
+    logo: logoData,
+    bgColor: $("fBg").value,
+    bgImage: bgData,
+    bgDim: Number($("fBgDim").value) || 0,
+    tileIcons,
+    servers,
+    updatedAt: serverTimestamp(),
+    updatedBy: me.email,
+  };
+  const size = JSON.stringify(data).length;
+  if (size > 950000) return msg($("saveMsg"), "The pictures are too big to save together. Try smaller images.");
+  $("saveBtn").disabled = true;
+  try {
+    await updateDoc(doc(db, "providers", current.code), data);
+    await loadList(current.code);
+    msg($("saveMsg"), "Saved. Apps pick up the change within a few minutes.", true);
+  } catch (e) { msg($("saveMsg"), friendly(e)); }
+  finally { $("saveBtn").disabled = false; }
+};
+
+$("delBtn").onclick = async () => {
+  if (!current || !isAdmin) return;
+  const typed = prompt(`Type ${current.code} to delete this provider. Customers using this code will stop working.`);
+  if (typed !== current.code) return;
+  try { await deleteDoc(doc(db, "providers", current.code)); current = null; await loadList(); }
+  catch (e) { msg($("saveMsg"), friendly(e)); }
+};
+
+// ---------- new provider (admin) ----------
+document.querySelectorAll("[data-close]").forEach(b => b.onclick = () => b.closest("dialog").close());
+$("newBtn").onclick = () => { $("newForm").reset(); msg($("newMsg"), ""); $("newDlg").showModal(); };
+$("nCode").addEventListener("input", () => { $("nCode").value = $("nCode").value.toUpperCase().replace(/[^A-Z0-9]/g, ""); });
+$("newForm").addEventListener("submit", async (ev) => {
+  ev.preventDefault();
+  const code = $("nCode").value.trim();
+  if (!/^[A-Z0-9]{3,16}$/.test(code)) return msg($("newMsg"), "Use 3–16 letters or numbers.");
+  try {
+    const ref = doc(db, "providers", code);
+    if ((await getDoc(ref)).exists()) return msg($("newMsg"), "That code is already taken.");
+    await setDoc(ref, {
+      name: $("nName").value.trim(), active: true, servers: [], logo: "", tileIcons: {}, message: "", support: "",
+      color1: "#9B6BFF", color2: "#50C8FF", ownerUid: me.uid, ownerEmail: "",
+      createdAt: serverTimestamp(), updatedAt: serverTimestamp(), updatedBy: me.email,
+    });
+    $("newDlg").close();
+    await loadList(code);
+  } catch (e) { msg($("newMsg"), friendly(e)); }
+});
+
+// ---------- app updates (admin) ----------
+const DEFAULT_BASE = "https://github.com/tomcast-dev/castkey-releases/releases/download/v{version}/";
+let appInfo = null;
+async function loadUpdateInfo() {
+  try {
+    const snap = await getDoc(doc(db, "settings", "app"));
+    appInfo = snap.exists() ? snap.data() : null;
+    $("updVer").textContent = appInfo?.latestVersion ? "· v" + appInfo.latestVersion : "";
+  } catch { appInfo = null; }
+}
+$("updBtn").onclick = () => {
+  msg($("updMsg"), "");
+  $("uVer").value = appInfo?.latestVersion || "";
+  $("uNotes").value = appInfo?.notes || "";
+  $("uBase").value = appInfo?.downloadBase || DEFAULT_BASE;
+  $("uReq").checked = !!appInfo?.required;
+  $("updDlg").showModal();
+};
+$("updForm").addEventListener("submit", async (ev) => {
+  ev.preventDefault();
+  const ver = $("uVer").value.trim();
+  if (!/^\d+(\.\d+){0,3}$/.test(ver)) return msg($("updMsg"), "Use numbers and dots only, like 1.8 or 1.8.1");
+  const base = $("uBase").value.trim();
+  if (!/^https?:\/\//.test(base)) return msg($("updMsg"), "The download folder needs to start with https://");
+  try {
+    await setDoc(doc(db, "settings", "app"), {
+      latestVersion: ver, notes: $("uNotes").value.trim(), downloadBase: base, required: $("uReq").checked,
+      updatedAt: serverTimestamp(), updatedBy: me.email,
+    });
+    $("updDlg").close();
+    await loadUpdateInfo();
+    msg($("saveMsg"), `Update ${ver} published. Apps will offer it the next time they open.`, true);
+  } catch (e) { msg($("updMsg"), friendly(e)); }
+});
+
+// ---------- owner login (admin) ----------
+$("setOwner").onclick = () => { $("ownerForm").reset(); msg($("ownerMsg"), ""); $("oEmail").value = current?.ownerEmail || ""; $("ownerDlg").showModal(); };
+$("ownerForm").addEventListener("submit", async (ev) => {
+  ev.preventDefault();
+  const email = $("oEmail").value.trim(), pass = $("oPass").value, uidIn = $("oUid").value.trim();
+  let uid = uidIn;
+  try {
+    if (!uid) {
+      if (pass.length < 8) return msg($("ownerMsg"), "Enter a temporary password (8+ characters), or the User UID of an existing login.");
+      // A second, separate Firebase instance creates the login so you stay signed in as admin.
+      const tmp = initializeApp(firebaseConfig, "owner-" + Date.now());
+      try {
+        const cred = await createUserWithEmailAndPassword(getAuth(tmp), email, pass);
+        uid = cred.user.uid;
+        await signOut(getAuth(tmp));
+      } finally { await deleteApp(tmp); }
+    }
+    await updateDoc(doc(db, "providers", current.code), { ownerUid: uid, ownerEmail: email, updatedAt: serverTimestamp(), updatedBy: me.email });
+    $("ownerDlg").close();
+    await loadList(current.code);
+    msg($("saveMsg"), `Owner set. Give ${email} their password and this panel file.`, true);
+  } catch (e) { msg($("ownerMsg"), friendly(e)); }
+});
+</script>
+</body>
+</html>
