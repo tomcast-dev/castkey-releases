@@ -144,6 +144,7 @@
   .bub { max-width: 85%; padding: 9px 12px; border-radius: 12px; background: var(--panel2); white-space: pre-wrap; overflow-wrap: anywhere; }
   .bub.me { align-self: flex-end; background: rgba(155,107,255,.22); }
   .bub .h { font-size: 11px; color: var(--dim); margin-bottom: 3px; }
+  .ibx-count { display: inline-block; min-width: 18px; padding: 1px 6px; margin-left: 4px; border-radius: 10px; background: var(--bad); color: #fff; font-size: 12px; font-weight: 700; text-align: center; }
   .ibx-empty { color: var(--dim); padding: 24px 4px; text-align: center; }
   .tv .pvann { background: #15151d; border-radius: 6px; overflow: hidden; white-space: nowrap; font-size: 9px; padding: 4px 0; display: flex; align-items: center; }
   .tv .pvann b { flex: none; padding: 0 6px; color: var(--pa2, #50C8FF); font-size: 9px; }
@@ -308,6 +309,7 @@
       <div class="titlebar">
         <h1 id="edTitle">Provider</h1>
         <span id="edCode" class="code-pill"></span>
+        <button id="inboxTop" class="btn small" type="button" title="Customer messages">💬 Support inbox <span id="inboxTopCount" class="ibx-count hidden"></span></button>
         <span class="spacer"></span>
         <label class="switch" title="When off, the app says this code isn't active">
           <input id="fActive" type="checkbox"><span class="track"></span><span id="activeTxt">Active</span>
@@ -316,6 +318,16 @@
 
       <div class="editor">
         <div class="col">
+          <div class="card" id="supportCard">
+            <h3>Support inbox <span id="inboxBadge" class="annstate off">Off</span> <span class="sub">Customers message you from the app</span></h3>
+            <label class="switch" style="margin:0 0 14px"><input id="fSupportOn" type="checkbox"><span class="track"></span><span>Let customers message me from the app <span style="opacity:.7">(💬 on Home and in Settings)</span></span></label>
+            <div><button id="openInbox" class="btn small" type="button">💬 Open inbox</button></div>
+            <div class="field" style="margin-top:16px"><label for="fHook">Discord alerts <span style="opacity:.7">(optional)</span></label>
+              <input id="fHook" type="url" placeholder="https://discord.com/api/webhooks/…" autocomplete="off">
+              <div class="hint">Get a ping in Discord when a customer writes, so you know to check this inbox. In Discord: channel ⚙ Edit Channel → Integrations → Webhooks → New Webhook → Copy Webhook URL, then paste it here and Save. Use a private staff-only channel. The ping only says who wrote, not what they wrote. If you ever get junk posts in that channel, delete the webhook in Discord and paste a new one here.</div></div>
+            <button id="hookTest" class="btn small" type="button">Send test ping</button> <span id="hookMsg" class="msg"></span>
+          </div>
+
           <div class="card">
             <h3>Basics</h3>
             <div class="field"><label for="fName">Display name</label><input id="fName" type="text" maxlength="40" placeholder="My TV Service"></div>
@@ -419,16 +431,6 @@
             <div class="tiles-edit" id="tileSlots"></div>
             <div class="hint">Tile pictures replace the icons on the Home tiles (Search now sits at the top of Home). Square PNGs with a see-through background look best. Leave empty to use the colors.</div>
             <input id="fTile" type="file" accept="image/png,image/jpeg,image/webp" class="hidden">
-          </div>
-
-          <div class="card" id="supportCard">
-            <h3>Support inbox <span id="inboxBadge" class="annstate off">Off</span> <span class="sub">Customers message you from the app</span></h3>
-            <label class="switch" style="margin:0 0 14px"><input id="fSupportOn" type="checkbox"><span class="track"></span><span>Let customers message me from the app <span style="opacity:.7">(💬 on Home and in Settings)</span></span></label>
-            <div><button id="openInbox" class="btn small" type="button">💬 Open inbox</button></div>
-            <div class="field" style="margin-top:16px"><label for="fHook">Discord alerts <span style="opacity:.7">(optional)</span></label>
-              <input id="fHook" type="url" placeholder="https://discord.com/api/webhooks/…" autocomplete="off">
-              <div class="hint">Get a ping in Discord when a customer writes, so you know to check this inbox. In Discord: channel ⚙ Edit Channel → Integrations → Webhooks → New Webhook → Copy Webhook URL, then paste it here and Save. Use a private staff-only channel. The ping only says who wrote, not what they wrote. If you ever get junk posts in that channel, delete the webhook in Discord and paste a new one here.</div></div>
-            <button id="hookTest" class="btn small" type="button">Send test ping</button> <span id="hookMsg" class="msg"></span>
           </div>
 
           <div id="ownerCard" class="card hidden">
@@ -916,8 +918,9 @@ function when(ms) {
 }
 function inboxBadge() {
   const b = $("inboxBadge");
-  if (!$("fSupportOn").checked && !tickets.length) { b.textContent = "Off"; b.className = "annstate off"; return; }
+  if (!$("fSupportOn").checked && !tickets.length) { b.textContent = "Off"; b.className = "annstate off"; show($("inboxTopCount"), false); return; }
   const n = tickets.filter(t => t.unreadProvider).length;
+  $("inboxTopCount").textContent = n; show($("inboxTopCount"), n > 0);
   b.textContent = n ? `${n} new` : "No new messages";
   b.className = "annstate " + (n ? "ended" : "on");
 }
@@ -988,6 +991,7 @@ $("openInbox").onclick = async () => {
   try { await loadTickets(current.code); renderInbox(); }
   catch (e) { $("ibxList").innerHTML = `<div class="ibx-empty">${esc(friendly(e))}</div>`; }
 };
+$("inboxTop").onclick = () => $("openInbox").onclick();
 $("ibxRefresh").onclick = async () => {
   if (!current) return;
   try {
