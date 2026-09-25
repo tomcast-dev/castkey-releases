@@ -1,8 +1,8 @@
 <!doctype html>
 <html lang="en">
 <head>
-<meta charset="utf-8">
 <meta name="robots" content="noindex,nofollow">
+<meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>CastKey Panel</title>
 <style>
@@ -125,6 +125,26 @@
   .annstate.on { background: rgba(80,200,120,.16); color: #6be38f; }
   .annstate.off { background: #22222c; color: var(--dim); }
   .annstate.ended { background: rgba(255,107,107,.14); color: #ff8b8b; }
+  /* Support inbox */
+  dialog.wide { width: min(780px, calc(100vw - 24px)); max-height: 88vh; overflow: auto; }
+  .ibx-head { display: flex; align-items: center; gap: 8px; margin-bottom: 12px; flex-wrap: wrap; }
+  .ibx-head h3 { margin: 0; flex: 1; min-width: 0; }
+  .ibx-list { display: flex; flex-direction: column; gap: 8px; }
+  .ibx-item { display: flex; gap: 10px; align-items: flex-start; padding: 12px; border-radius: 12px; background: var(--panel2); border: 1px solid var(--line); cursor: pointer; }
+  .ibx-item:hover { border-color: var(--accent); }
+  .ibx-dot { width: 10px; height: 10px; border-radius: 50%; background: var(--bad); flex: 0 0 auto; margin-top: 6px; }
+  .ibx-dot.read { background: transparent; }
+  .ibx-item .t { min-width: 0; flex: 1; }
+  .ibx-item .n { font-weight: 600; display: flex; gap: 8px; flex-wrap: wrap; align-items: baseline; }
+  .ibx-item .w { color: var(--dim); font-size: 12px; font-weight: 400; margin-left: auto; }
+  .ibx-item .p { color: var(--dim); font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .ibx-info { color: var(--dim); font-size: 12px; margin: 12px 0; line-height: 1.6; overflow-wrap: anywhere; }
+  .ibx-info b { color: var(--text); font-weight: 600; }
+  .ibx-msgs { display: flex; flex-direction: column; gap: 8px; margin-bottom: 12px; }
+  .bub { max-width: 85%; padding: 9px 12px; border-radius: 12px; background: var(--panel2); white-space: pre-wrap; overflow-wrap: anywhere; }
+  .bub.me { align-self: flex-end; background: rgba(155,107,255,.22); }
+  .bub .h { font-size: 11px; color: var(--dim); margin-bottom: 3px; }
+  .ibx-empty { color: var(--dim); padding: 24px 4px; text-align: center; }
   .tv .pvann { background: #15151d; border-radius: 6px; overflow: hidden; white-space: nowrap; font-size: 9px; padding: 4px 0; display: flex; align-items: center; }
   .tv .pvann b { flex: none; padding: 0 6px; color: var(--pa2, #50C8FF); font-size: 9px; }
   .tv .pvann span { display: inline-block; padding-left: 100%; animation: pvscroll 14s linear infinite; }
@@ -401,6 +421,16 @@
             <input id="fTile" type="file" accept="image/png,image/jpeg,image/webp" class="hidden">
           </div>
 
+          <div class="card" id="supportCard">
+            <h3>Support inbox <span id="inboxBadge" class="annstate off">Off</span> <span class="sub">Customers message you from the app</span></h3>
+            <label class="switch" style="margin:0 0 14px"><input id="fSupportOn" type="checkbox"><span class="track"></span><span>Let customers message me from the app <span style="opacity:.7">(💬 on Home and in Settings)</span></span></label>
+            <div><button id="openInbox" class="btn small" type="button">💬 Open inbox</button></div>
+            <div class="field" style="margin-top:16px"><label for="fHook">Discord alerts <span style="opacity:.7">(optional)</span></label>
+              <input id="fHook" type="url" placeholder="https://discord.com/api/webhooks/…" autocomplete="off">
+              <div class="hint">Get a ping in Discord when a customer writes, so you know to check this inbox. In Discord: channel ⚙ Edit Channel → Integrations → Webhooks → New Webhook → Copy Webhook URL, then paste it here and Save. Use a private staff-only channel. The ping only says who wrote, not what they wrote. If you ever get junk posts in that channel, delete the webhook in Discord and paste a new one here.</div></div>
+            <button id="hookTest" class="btn small" type="button">Send test ping</button> <span id="hookMsg" class="msg"></span>
+          </div>
+
           <div id="ownerCard" class="card hidden">
             <h3>Owner login <span class="sub">Admin only</span></h3>
             <div id="ownerNow" class="hint" style="margin:0 0 12px;font-size:14px"></div>
@@ -434,6 +464,26 @@
     </div>
   </main>
 </section>
+
+<!-- Support inbox -->
+<dialog id="inboxDlg" class="wide">
+  <div class="ibx-head"><h3 id="ibxTitle">Support inbox</h3>
+    <button id="ibxRefresh" class="btn small" type="button">Refresh</button>
+    <button class="btn small" type="button" data-close>Close</button></div>
+  <div id="ibxList" class="ibx-list"></div>
+  <div id="ibxThread" class="hidden">
+    <button id="ibxBack" class="btn small" type="button">← All messages</button>
+    <div id="ibxInfo" class="ibx-info"></div>
+    <div id="ibxMsgs" class="ibx-msgs"></div>
+    <textarea id="ibxReply" maxlength="1000" placeholder="Type your reply… The customer sees it in the app."></textarea>
+    <div class="dlg-actions" style="flex-wrap:wrap">
+      <button id="ibxDel" class="btn small danger" type="button">Delete</button>
+      <button id="ibxSolve" class="btn small" type="button">Mark solved</button>
+      <button id="ibxSend" class="btn primary" type="button">Send reply</button>
+    </div>
+    <div id="ibxMsg" class="msg"></div>
+  </div>
+</dialog>
 
 <!-- New provider -->
 <dialog id="newDlg">
@@ -483,7 +533,7 @@
 import { initializeApp, deleteApp } from "https://www.gstatic.com/firebasejs/12.19.0/firebase-app.js";
 import { getAuth, onAuthStateChanged, signInWithEmailAndPassword, signOut, createUserWithEmailAndPassword }
   from "https://www.gstatic.com/firebasejs/12.19.0/firebase-auth.js";
-import { getFirestore, doc, getDoc, setDoc, updateDoc, deleteDoc, collection, getDocs, query, where, serverTimestamp }
+import { getFirestore, doc, getDoc, setDoc, updateDoc, deleteDoc, collection, getDocs, query, where, serverTimestamp, arrayUnion }
   from "https://www.gstatic.com/firebasejs/12.19.0/firebase-firestore.js";
 
 // These values identify the Firebase project. They are not secret; the security rules protect the data.
@@ -593,6 +643,10 @@ function open(code) {
   $("fSupport").value = current.support || "";
   $("fAnn").value = current.announcement || "";
   $("fSports").checked = current.sports === true;
+  $("fSupportOn").checked = current.supportOn === true;
+  $("fHook").value = current.supportWebhook || "";
+  msg($("hookMsg"), "");
+  tickets = []; inboxBadge(); loadTickets(current.code).catch(() => {});
   $("fAnnExp").value = current.announcementExpires ? toLocalInput(current.announcementExpires) : "";
   $("fActive").checked = current.active !== false;
   $("activeTxt").textContent = $("fActive").checked ? "Active" : "Turned off";
@@ -800,6 +854,7 @@ $("saveBtn").onclick = async () => {
   const bad = servers.find(s => !/^https?:\/\/[^\s/]+/i.test(s.url));
   if (bad) return msg($("saveMsg"), `"${bad.url}" needs to start with http:// or https://`);
   if (!servers.length) return msg($("saveMsg"), "Add at least one server address.");
+  if (hookUrl() === null) return msg($("saveMsg"), "The Discord webhook should look like https://discord.com/api/webhooks/… (or leave it empty).");
   const annText = $("fAnn").value.trim(), annExp = annExpiresMs();
   if (annText && annExp && annExp <= Date.now()) return msg($("saveMsg"), "The announcement's end date has already passed. Pick a later time or clear it.");
   const data = {
@@ -807,6 +862,8 @@ $("saveBtn").onclick = async () => {
     message: $("fMsg").value.trim(),
     support: $("fSupport").value.trim(),
     sports: $("fSports").checked,
+    supportOn: $("fSupportOn").checked,
+    supportWebhook: hookUrl(),
     announcement: annText,
     announcementExpires: annText ? annExp : 0,
     active: $("fActive").checked,
@@ -843,6 +900,155 @@ $("delBtn").onclick = async () => {
   if (typed !== current.code) return;
   try { await deleteDoc(doc(db, "providers", current.code)); current = null; await loadList(); }
   catch (e) { msg($("saveMsg"), friendly(e)); }
+};
+
+// ---------- support inbox ----------
+let tickets = [], ticket = null;
+const HOOK_RE = /^https:\/\/(canary\.|ptb\.)?(discord|discordapp)\.com\/api\/webhooks\/\d+\/[\w-]+$/;
+/** The webhook from the box: "" if empty, null if it doesn't look like a Discord webhook. */
+function hookUrl() { const v = $("fHook").value.trim(); return !v ? "" : (HOOK_RE.test(v) ? v : null); }
+function esc(s) { return String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c])); }
+function when(ms) {
+  if (!ms) return "";
+  const d = new Date(ms), now = new Date();
+  const t = d.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
+  return d.toDateString() === now.toDateString() ? t : d.toLocaleDateString([], { month: "short", day: "numeric" }) + ", " + t;
+}
+function inboxBadge() {
+  const b = $("inboxBadge");
+  if (!$("fSupportOn").checked && !tickets.length) { b.textContent = "Off"; b.className = "annstate off"; return; }
+  const n = tickets.filter(t => t.unreadProvider).length;
+  b.textContent = n ? `${n} new` : "No new messages";
+  b.className = "annstate " + (n ? "ended" : "on");
+}
+async function loadTickets(code) {
+  const snap = await getDocs(collection(db, "providers", code, "tickets"));
+  if (!current || current.code !== code) return;
+  tickets = snap.docs.map(d => ({ id: d.id, ...d.data() })).sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0));
+  inboxBadge();
+}
+function renderInbox() {
+  show($("ibxThread"), false); show($("ibxList"), true);
+  $("ibxTitle").textContent = `Support inbox · ${current.name || current.code}`;
+  const box = $("ibxList");
+  if (!tickets.length) {
+    box.innerHTML = `<div class="ibx-empty">No messages yet.${$("fSupportOn").checked ? "" : "<br>Turn on “Let customers message me from the app” and Save so customers can write to you."}</div>`;
+    return;
+  }
+  box.innerHTML = "";
+  for (const t of tickets) {
+    const last = (t.messages || [])[(t.messages || []).length - 1] || {};
+    const el = document.createElement("div");
+    el.className = "ibx-item";
+    el.innerHTML = `<span class="ibx-dot ${t.unreadProvider ? "" : "read"}"></span>
+      <div class="t"><div class="n">${esc(t.user || "Customer")}${t.profile ? ` <span style="color:var(--dim);font-weight:400">· ${esc(t.profile)}</span>` : ""}
+        ${t.status === "closed" ? `<span class="annstate on" style="margin:0">Solved</span>` : ""}<span class="w">${esc(when(t.updatedAt))}</span></div>
+      <div class="p">${last.from === "provider" ? "You: " : ""}${esc(last.text || "")}</div></div>`;
+    el.onclick = () => openTicket(t.id);
+    box.appendChild(el);
+  }
+}
+function renderThread() {
+  const t = ticket;
+  show($("ibxList"), false); show($("ibxThread"), true);
+  $("ibxTitle").textContent = t.user || "Customer";
+  $("ibxInfo").innerHTML = [
+    ["Username", t.user], ["Profile", t.profile], ["Device", t.device], ["App", t.app], ["Last channel", t.channel],
+  ].filter(([, v]) => v).map(([k, v]) => `${k}: <b>${esc(v)}</b>`).join(" &nbsp;·&nbsp; ");
+  const box = $("ibxMsgs"); box.innerHTML = "";
+  for (const m of t.messages || []) {
+    const el = document.createElement("div");
+    el.className = "bub" + (m.from === "provider" ? " me" : "");
+    el.innerHTML = `<div class="h">${m.from === "provider" ? "You" : esc(t.user || "Customer")} · ${esc(when(m.at))}</div>${esc(m.text)}`;
+    box.appendChild(el);
+  }
+  $("ibxSolve").textContent = t.status === "closed" ? "Reopen" : "Mark solved";
+  msg($("ibxMsg"), "");
+}
+async function openTicket(id) {
+  const ref = doc(db, "providers", current.code, "tickets", id);
+  try {
+    const snap = await getDoc(ref);
+    if (!snap.exists()) { await loadTickets(current.code); return renderInbox(); }
+    ticket = { id, ...snap.data() };
+    renderThread();
+    if (ticket.unreadProvider) {
+      await updateDoc(ref, { unreadProvider: false });
+      ticket.unreadProvider = false;
+      const t = tickets.find(x => x.id === id); if (t) t.unreadProvider = false;
+      inboxBadge();
+    }
+  } catch (e) { msg($("ibxMsg"), friendly(e)); }
+}
+$("openInbox").onclick = async () => {
+  if (!current) return;
+  $("inboxDlg").showModal();
+  $("ibxList").innerHTML = `<div class="ibx-empty">Loading…</div>`;
+  show($("ibxThread"), false); show($("ibxList"), true);
+  try { await loadTickets(current.code); renderInbox(); }
+  catch (e) { $("ibxList").innerHTML = `<div class="ibx-empty">${esc(friendly(e))}</div>`; }
+};
+$("ibxRefresh").onclick = async () => {
+  if (!current) return;
+  try {
+    await loadTickets(current.code);
+    if (ticket && !$("ibxThread").classList.contains("hidden")) await openTicket(ticket.id); else renderInbox();
+  } catch (e) { msg($("ibxMsg"), friendly(e)); }
+};
+$("ibxBack").onclick = () => { ticket = null; renderInbox(); };
+$("ibxSend").onclick = async () => {
+  const text = $("ibxReply").value.trim();
+  if (!ticket || !text) return;
+  $("ibxSend").disabled = true;
+  try {
+    await updateDoc(doc(db, "providers", current.code, "tickets", ticket.id), {
+      messages: arrayUnion({ from: "provider", text: text.slice(0, 1000), at: Date.now() }),
+      unreadCustomer: true, unreadProvider: false, updatedAt: Date.now(),
+    });
+    $("ibxReply").value = "";
+    await loadTickets(current.code);
+    await openTicket(ticket.id);
+    msg($("ibxMsg"), "Sent. The customer sees it in the app within a few minutes (right away if Messages is open).", true);
+  } catch (e) { msg($("ibxMsg"), friendly(e)); }
+  finally { $("ibxSend").disabled = false; }
+};
+$("ibxSolve").onclick = async () => {
+  if (!ticket) return;
+  const status = ticket.status === "closed" ? "open" : "closed";
+  try {
+    await updateDoc(doc(db, "providers", current.code, "tickets", ticket.id), { status });
+    await loadTickets(current.code);
+    await openTicket(ticket.id);
+  } catch (e) { msg($("ibxMsg"), friendly(e)); }
+};
+$("ibxDel").onclick = async () => {
+  if (!ticket || !confirm(`Delete this conversation with ${ticket.user || "this customer"}? This can't be undone.`)) return;
+  try {
+    await deleteDoc(doc(db, "providers", current.code, "tickets", ticket.id));
+    ticket = null;
+    await loadTickets(current.code);
+    renderInbox();
+  } catch (e) { msg($("ibxMsg"), friendly(e)); }
+};
+$("fSupportOn").onchange = inboxBadge;
+$("hookTest").onclick = async () => {
+  const url = hookUrl();
+  if (!url) return msg($("hookMsg"), url === "" ? "Paste your Discord webhook first." : "That doesn't look like a Discord webhook link.");
+  const fd = new FormData();
+  fd.append("payload_json", JSON.stringify({
+    username: "CastKey",
+    content: `✅ Test from the CastKey panel. You'll get a ping here when a customer of ${current?.name || "your service"} sends a message.`,
+    allowed_mentions: { parse: [] },
+  }));
+  try {
+    const r = await fetch(url, { method: "POST", body: fd });
+    if (r.ok) msg($("hookMsg"), "Sent! Check your Discord channel. Remember to Save.", true);
+    else msg($("hookMsg"), r.status === 404 ? "Discord says that webhook doesn't exist (deleted?)." : "Discord refused it (" + r.status + "). Check the link.");
+  } catch (e) {
+    // Some browsers block reading Discord's answer; send it blind instead.
+    try { await fetch(url, { method: "POST", body: fd, mode: "no-cors" }); msg($("hookMsg"), "Sent. Check your Discord channel. Remember to Save.", true); }
+    catch (e2) { msg($("hookMsg"), "Couldn't reach Discord from this browser."); }
+  }
 };
 
 // ---------- new provider (admin) ----------
