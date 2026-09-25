@@ -46,7 +46,7 @@
   .login p { color: var(--dim); margin: 0 0 20px; font-size: 14px; }
 
   label { display: block; font-size: 13px; color: var(--dim); margin: 0 0 6px; }
-  input[type=text], input[type=email], input[type=password], input[type=url], input[type=datetime-local], textarea {
+  input[type=text], input[type=email], input[type=password], input[type=url], input[type=datetime-local], textarea, select {
     width: 100%; background: #0f0f16; border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; outline: none; }
   input:focus, textarea:focus { border-color: var(--accent); }
   textarea { resize: vertical; min-height: 70px; }
@@ -141,6 +141,27 @@
   .tv .tile { background: #15151d; border-radius: 8px; display: grid; place-items: center; font-size: 10px; font-weight: 700;
     border: 2px solid transparent; }
   .tv .tile.f { border-color: var(--pa, #9B6BFF); }
+  /* Home look preview (layouts + tile styles) */
+  .looksel { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; }
+  .looksel select { width: 100%; }
+  .tv.lay-featured .tiles { grid-template-columns: 1.4fr 1fr !important; grid-template-rows: repeat(3, 1fr); }
+  .tv.lay-featured .tiles .tile:first-child { grid-row: 1 / span 3; }
+  .tv.lay-featured .tiles .tile:not(:first-child) > div, .tv.lay-side .tiles .tile > div { display: flex; align-items: center; gap: 6px; }
+  .tv.lay-featured .tiles .tile:not(:first-child) i, .tv.lay-side .tiles .tile i { margin: 0; width: 16px; height: 16px; }
+  .tv.lay-grid .tiles { grid-template-columns: repeat(2, 1fr) !important; grid-auto-rows: 1fr; min-height: 0; }
+  .tv.lay-grid .tiles .tile i { width: 16px; height: 16px; margin-bottom: 2px; }
+  .tv.lay-side .tiles { grid-template-columns: 38% !important; grid-auto-rows: 1fr; }
+  .tv.lay-side .tiles .tile { place-items: center start; padding-left: 8px; }
+  .tv.lay-compact .tiles { display: flex !important; justify-content: center; align-items: center; gap: 14px; }
+  .tv.lay-compact .tiles .tile { width: 54px; height: 54px; border-radius: 50%; background: #15151d; font-size: 0; }
+  .tv.lay-compact .tiles .tile > div { font-size: 8px; transform: translateY(20px); }
+  .tv.lay-compact .tiles .tile i { transform: translateY(-20px); margin-bottom: -18px; }
+  .tv.sty-solid .tile { background: var(--tc, var(--pa, #9B6BFF)) !important; }
+  .tv.sty-solid .tile i:not(.img) { background: transparent !important; }
+  .tv.sty-glass .tile { background: rgba(255,255,255,.08) !important; border-color: rgba(255,255,255,.12); }
+  .tv.sty-glass .tile i:not(.img), .tv.sty-none .tile i:not(.img) { background: transparent !important; }
+  .tv.sty-glass .tile i svg, .tv.sty-none .tile i svg { fill: var(--tc, var(--pa2, #50C8FF)); }
+  .tv.sty-none .tile { background: transparent !important; border-color: transparent !important; text-shadow: 0 1px 4px #000; }
   .tv .tile i { display: block; width: 22px; height: 22px; border-radius: 6px; margin: 0 auto 5px; background: var(--pa, #9B6BFF); opacity: .85; }
   .preview .cap { color: var(--dim); font-size: 12px; margin-top: 8px; text-align: center; }
 
@@ -219,7 +240,7 @@
   @media (pointer: coarse) {
     .btn { min-height: 44px; }
     .btn.small { min-height: 38px; padding: 8px 12px; }
-    input[type=text], input[type=email], input[type=password], input[type=url], input[type=datetime-local], textarea { font-size: 16px; padding: 12px; }
+    input[type=text], input[type=email], input[type=password], input[type=url], input[type=datetime-local], textarea, select { font-size: 16px; padding: 12px; }
     .pitem { min-height: 56px; }
     input[type=color] { width: 48px; height: 38px; }
   }
@@ -332,6 +353,31 @@
                 </div>
               </div>
               <div class="hint">Optional. A wide picture (like 1920×1080) works best. It's resized automatically and darkened so text stays easy to read.</div>
+            </div>
+            <div class="bgedit">
+              <h3 style="margin:0 0 10px;font-size:15px">Home screen look</h3>
+              <div class="looksel">
+                <div class="field" style="margin:0"><label for="fLayout">Layout</label>
+                  <select id="fLayout">
+                    <option value="row">Row of tiles</option>
+                    <option value="featured">Big Live TV</option>
+                    <option value="grid">Grid</option>
+                    <option value="side">Side menu</option>
+                    <option value="compact">Compact icons</option>
+                  </select></div>
+                <div class="field" style="margin:0"><label for="fTileStyle">Tile style</label>
+                  <select id="fTileStyle">
+                    <option value="card">Card</option>
+                    <option value="solid">Solid color</option>
+                    <option value="glass">Glass</option>
+                    <option value="none">No background</option>
+                  </select></div>
+              </div>
+              <div class="colors" style="margin-top:14px;flex-wrap:wrap">
+                <label><input id="fTileColor" type="color" value="#7C5CFF"> Tile color</label>
+                <label class="switch" style="margin:0"><input id="fTileBrand" type="checkbox" checked><span class="track"></span><span>Use my two brand colors</span></label>
+              </div>
+              <div class="hint">This is the default for your customers. They can change it for themselves in the app's Settings (and switch back to yours anytime). "No background" looks great over a background picture.</div>
             </div>
             <div class="tiles-edit" id="tileSlots"></div>
             <div class="hint">Tile pictures replace the icons on the Home tiles (Search now sits at the top of Home). Square PNGs with a see-through background look best. Leave empty to use the colors.</div>
@@ -539,6 +585,10 @@ function open(code) {
   bgData = current.bgImage || "";
   $("fBg").value = current.bgColor || "#0D0F14";
   $("fBgDim").value = current.bgDim ?? 55;
+  $("fLayout").value = current.homeLayout || "row";
+  $("fTileStyle").value = current.tileStyle || "card";
+  $("fTileBrand").checked = !current.tileColor || current.tileColor === "brand";
+  $("fTileColor").value = (current.tileColor && current.tileColor !== "brand") ? current.tileColor : "#7C5CFF";
   setBgBox();
   setLogoBox();
   tileIcons = { ...(current.tileIcons || {}) };
@@ -677,6 +727,12 @@ function preview() {
     i.classList.toggle("img", !!icon);
     i.style.background = icon ? `center/contain no-repeat url("${icon}")` : (n % 2 ? $("fC2").value : $("fC1").value);
   });
+  // Home look
+  ["row", "featured", "grid", "side", "compact"].forEach(l => tv.classList.toggle("lay-" + l, $("fLayout").value === l));
+  ["card", "solid", "glass", "none"].forEach(st => tv.classList.toggle("sty-" + st, $("fTileStyle").value === st));
+  if ($("fTileBrand").checked) tv.style.removeProperty("--tc"); else tv.style.setProperty("--tc", $("fTileColor").value);
+  $("fTileColor").disabled = $("fTileBrand").checked;
+  if (!$("fTileBrand").checked && $("fTileStyle").value === "card") tv.querySelectorAll(".tile i:not(.img)").forEach(i => i.style.background = $("fTileColor").value);
   const ann = $("fAnn").value.trim();
   $("pvAnn").querySelector("span").textContent = ann;
   show($("pvAnn"), !!ann);
@@ -684,6 +740,8 @@ function preview() {
 }
 ["fName", "fMsg", "fC1", "fC2", "fAnn", "fAnnExp"].forEach(id => $(id).addEventListener("input", preview));
 $("fSports").addEventListener("change", preview);
+["fLayout", "fTileStyle", "fTileBrand"].forEach(id => $(id).addEventListener("change", preview));
+$("fTileColor").addEventListener("input", preview);
 function toLocalInput(ms) {
   const d = new Date(ms);
   const p = n => String(n).padStart(2, "0");
@@ -722,6 +780,9 @@ $("saveBtn").onclick = async () => {
     bgColor: $("fBg").value,
     bgImage: bgData,
     bgDim: Number($("fBgDim").value) || 0,
+    homeLayout: $("fLayout").value,
+    tileStyle: $("fTileStyle").value,
+    tileColor: $("fTileBrand").checked ? "" : $("fTileColor").value,
     tileIcons,
     servers,
     updatedAt: serverTimestamp(),
