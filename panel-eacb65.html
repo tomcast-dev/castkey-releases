@@ -355,6 +355,23 @@
               <div class="hint">Optional. A wide picture (like 1920×1080) works best. It's resized automatically and darkened so text stays easy to read.</div>
             </div>
             <div class="bgedit">
+              <h3 style="margin:0 0 10px;font-size:15px">Intro video <span class="sub">optional</span></h3>
+              <div class="field" style="margin:0"><label for="fIntro">Link to an MP4 video</label>
+                <input id="fIntro" type="url" placeholder="https://…/intro.mp4" autocomplete="off"></div>
+              <div class="looksel" style="margin-top:12px">
+                <div class="field" style="margin:0"><label for="fIntroMode">Plays</label>
+                  <select id="fIntroMode"><option value="launch">Every time the app opens</option><option value="daily">Once a day</option></select></div>
+                <label class="switch" style="margin:22px 0 0"><input id="fIntroSound" type="checkbox" checked><span class="track"></span><span>With sound</span></label>
+              </div>
+              <div style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap">
+                <button id="introTest" class="btn small" type="button">Preview</button>
+                <button id="introClear" class="btn small danger" type="button">Remove</button>
+                <span id="introMsg" class="msg"></span>
+              </div>
+              <video id="introPrev" class="hidden" playsinline controls muted style="width:100%;max-height:220px;margin-top:10px;border-radius:10px;background:#000"></video>
+              <div class="hint">Plays full screen when customers open the app (any button skips it). Keep it short — about 5–15 seconds and under 15 MB. Host the MP4 anywhere with a direct link: your website, GitHub, or Dropbox (Dropbox share links are fixed automatically). It downloads once to each device, so it doesn't use their data every time.</div>
+            </div>
+            <div class="bgedit">
               <h3 style="margin:0 0 10px;font-size:15px">Home screen look</h3>
               <div class="looksel">
                 <div class="field" style="margin:0"><label for="fLayout">Layout</label>
@@ -585,6 +602,10 @@ function open(code) {
   bgData = current.bgImage || "";
   $("fBg").value = current.bgColor || "#0D0F14";
   $("fBgDim").value = current.bgDim ?? 55;
+  $("fIntro").value = current.introVideo || "";
+  $("fIntroMode").value = current.introMode || "launch";
+  $("fIntroSound").checked = current.introSound !== false;
+  show($("introPrev"), false); $("introMsg").textContent = "";
   $("fLayout").value = current.homeLayout || "row";
   $("fTileStyle").value = current.tileStyle || "card";
   $("fTileBrand").checked = !current.tileColor || current.tileColor === "brand";
@@ -740,6 +761,20 @@ function preview() {
 }
 ["fName", "fMsg", "fC1", "fC2", "fAnn", "fAnnExp"].forEach(id => $(id).addEventListener("input", preview));
 $("fSports").addEventListener("change", preview);
+function introUrl() {
+  let u = $("fIntro").value.trim();
+  if (/dropbox\.com/i.test(u)) { u = u.replace("?dl=0", "?dl=1"); if (!/[?&](dl|raw)=1/.test(u)) u += (u.includes("?") ? "&" : "?") + "dl=1"; }
+  return u;
+}
+$("introTest").onclick = () => {
+  const u = introUrl(), v = $("introPrev");
+  if (!/^https?:\/\//i.test(u)) { msg($("introMsg"), "Paste a link that starts with https://"); return; }
+  $("introMsg").textContent = "Loading…";
+  v.onloadeddata = () => { $("introMsg").textContent = `Looks good — ${Math.round(v.duration || 0)} seconds.` + ((v.duration || 0) > 20 ? " (Customers will only see the first 20 seconds.)" : ""); };
+  v.onerror = () => { $("introMsg").textContent = "That link didn't play as a video. Make sure it's a direct link to an .mp4 file."; };
+  v.src = u; show(v, true); v.play().catch(() => {});
+};
+$("introClear").onclick = () => { $("fIntro").value = ""; const v = $("introPrev"); v.pause(); v.removeAttribute("src"); show(v, false); $("introMsg").textContent = ""; };
 ["fLayout", "fTileStyle", "fTileBrand"].forEach(id => $(id).addEventListener("change", preview));
 $("fTileColor").addEventListener("input", preview);
 function toLocalInput(ms) {
@@ -780,6 +815,9 @@ $("saveBtn").onclick = async () => {
     bgColor: $("fBg").value,
     bgImage: bgData,
     bgDim: Number($("fBgDim").value) || 0,
+    introVideo: /^https?:\/\//i.test(introUrl()) ? introUrl() : "",
+    introMode: $("fIntroMode").value,
+    introSound: $("fIntroSound").checked,
     homeLayout: $("fLayout").value,
     tileStyle: $("fTileStyle").value,
     tileColor: $("fTileBrand").checked ? "" : $("fTileColor").value,
